@@ -1,0 +1,128 @@
+//--------------------------------------------------------------------
+//		Timescale
+//		Means that if you do #1 in the initial block of your
+//		testbench, time is advanced by 1ns instead of 1ps
+//--------------------------------------------------------------------
+`timescale 1ns / 1ps
+
+//--------------------------------------------------------------------
+//		Design Assign #1, Testbench.
+//--------------------------------------------------------------------
+module dassign1_tb();
+//----------------------------------------------------------------
+//		Test Bench Signal Declarations
+//----------------------------------------------------------------
+   integer i,j,outfile;
+//----------------------------------------------------------------
+//		Instantiate modules Module
+//----------------------------------------------------------------
+dassign1_1	dassign1_1(pdec0, pdec3, pdec12, pdec15, nando[3:0], addr[5:0]);
+dassign1_2	dassign1_2(y1, y2, a,b,c,d);
+dassign1_3	dassign1_3(pos[4:0], pos3, ascii[6:0]);
+//----------------------------------------------------------------
+//		Design Task #1 Signal Declarations
+//----------------------------------------------------------------
+   reg [5:0] addr;
+   wire      pdec0, pdec3, pdec12, pdec15;
+   wire [3:0] nando;
+
+//----------------------------------------------------------------
+//		Design Task #2 Signal Declarations
+//----------------------------------------------------------------
+   reg 	   a,b,c,d;
+   wire    y1, y2;
+   
+//----------------------------------------------------------------
+//		Design Task #3 Signal Declarations
+//----------------------------------------------------------------
+   reg [4:0] pos_mem[0:255];
+   reg [7:0] pos_char;
+   reg [255:0] str;
+   reg [4:0]   tb_pos;
+
+   reg [6:0] ascii;
+   wire [4:0] pos;
+   wire       pos3;
+	
+//----------------------------------------------------------------
+//		Test Stimulus
+//----------------------------------------------------------------
+initial begin
+   outfile=$fopen("dassign1.txt");
+   if(!outfile) begin
+      $display("FAIL WRITE FILE");
+      $finish;
+   end
+
+//
+//  graphing the waveforms
+//
+//  $dumpfile("dassign1.vcd");
+//  $dumpvars(0,dassign1_tb);
+//
+   for(i=0;i<64;i=i+1) begin
+      addr[5:0] = i[5:0];
+      #5
+      //
+      // monitoring these signals whenever they change
+      //
+      // $monitor("addr: %b, pdec0: %b, pdec3: %b, pdec12: %b, pdec15: %b, extra:%b",addr[5:2],pdec0, pdec3, pdec12, pdec15, nando[3:0]);
+      case (addr[5:2])
+      	4'b0000: begin
+	   if (pdec0 !== 1'b1) 
+	     $display("Err pdec0: %b", pdec0);
+	end
+	4'b0011: begin
+	   if (pdec3 !== 1'b1) 
+	     $display("Err");
+	end	   
+	 4'b1100: begin
+	   if (pdec12 !== 1'b1) 
+	     $display("Err");
+	 end
+	 4'b1111: begin
+	   if (pdec15 !== 1'b1) 
+	     $display("Err");
+	 end
+	 default: begin
+	   if ({pdec15,pdec12,pdec3,pdec0} !== 4'b0000)
+   	     $display("Err");
+	 end
+      endcase // case (addr[5:2])
+   end // for (i=6'b0;i<64;i=i+1)
+
+   #1
+
+  // $monitor(i, y1, y2);
+//$display("hi");
+   
+   for(i=0;i<16;i=i+1) begin
+      {a,b,c,d} = i[3:0];
+      #2
+      if (y1 !== y2)
+         $display("Err");
+   end
+
+   #1
+   $readmemb("./ascii_pos.txt", pos_mem);
+
+   str = "abcdefghijklmnopqrstuvwxyz .,?  ";
+   //$monitor(pos_char, ascii, tb_pos, pos, tb_pos[3], pos[3]);
+//$monitor(tb_pos, pos);
+   #1
+   
+   for(i=31;i>=0;i=i-1) begin
+      for(j=0;j<8;j=j+1)
+	pos_char[j] = str[8*i+j];
+      ascii = pos_char[6:0];
+      tb_pos = pos_mem[pos_char];
+      
+      #2
+      if (pos3 !== tb_pos[3])
+	$display("Err");
+      if (pos !== tb_pos)
+	$display("Err");
+   end
+end // initial begin
+endmodule // dassign1_tb
+
